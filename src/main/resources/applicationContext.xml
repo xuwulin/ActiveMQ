@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- 开启包的扫描 -->
+    <context:component-scan base-package="com.xwl.activemq"></context:component-scan>
+
+    <!-- 配置生产者 -->
+    <bean id="jmsFactory" class="org.apache.activemq.pool.PooledConnectionFactory" destroy-method="stop">
+        <property name="connectionFactory">
+            <!-- 真正可以生产connection的connectionFactory，由对应的JMS服务厂商提供 -->
+            <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <property name="brokerURL" value="tcp://192.168.92.129:61616"/>
+            </bean>
+        </property>
+        <property name="maxConnections" value="100"></property>
+    </bean>
+
+    <!-- 这个是队列目的地，点对点（spring的构造注入） -->
+   <!-- <bean id="destinationQueue" class="org.apache.activemq.command.ActiveMQQueue">
+        &lt;!&ndash; spring-active-queue就是消息的名称 &ndash;&gt;
+        <constructor-arg index="0" value="spring-active-queue"/>
+    </bean>-->
+
+    <!-- 这个是主题 -->
+    <bean id="destinationTopic" class="org.apache.activemq.command.ActiveMQTopic">
+        <constructor-arg index="0" value="spring-active-topic"/>
+    </bean>
+
+    <!-- Spring的JMS模版工具类，它可以进行消息发送、接收等 -->
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="connectionFactory" ref="jmsFactory" />
+        <!-- 这个是队列 -->
+        <!--<property name="defaultDestination" ref="destinationQueue"/>-->
+        <!-- 这个是主题 -->
+        <property name="defaultDestination" ref="destinationTopic"/>
+        <property name="messageConverter">
+            <bean class="org.springframework.jms.support.converter.SimpleMessageConverter" />
+        </property>
+    </bean>
+
+    <!-- 这一步可以使用注解代替，在MyMessageListener类上加@Component注解 -->
+    <!--<bean id="myMessageListener" class="com.xwl.activemq.spring.MyMessageListener"/>-->
+    <!-- 配置监听程序 -->
+    <bean id="queueListenerContainer"
+          class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="jmsFactory" />
+        <property name="destination" ref="destinationTopic" />
+        <!-- public class MyMessageListener implements MessageListener-->
+        <property name="messageListener" ref="myMessageListener" />
+    </bean>
+
+</beans>
+
