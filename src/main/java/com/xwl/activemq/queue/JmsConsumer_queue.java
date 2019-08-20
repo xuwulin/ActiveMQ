@@ -26,8 +26,8 @@ import java.io.IOException;
  */
 public class JmsConsumer_queue {
     // 192.168.92.129为安装有activemq的虚拟机的地址
-    public static final String ACTIVEMQ_URL = "tcp://192.168.92.129:61616";
-    public static final String QUEUE_NAME = "queue01";
+    public static final String ACTIVEMQ_URL = "nio://192.168.92.129:61608";
+    public static final String QUEUE_NAME = "nioauto"; // 需要在activemq.xml中配置auto+nio
 
     public static void main(String[] args) throws JMSException, IOException {
         System.out.println("3号消费者");
