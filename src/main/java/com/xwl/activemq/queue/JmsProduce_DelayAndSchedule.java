@@ -1,29 +1,23 @@
 package com.xwl.activemq.queue;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.ActiveMQMessageProducer;
-import org.apache.activemq.AsyncCallback;
+import org.apache.activemq.ScheduledMessage;
 
 import javax.jms.*;
-import java.util.UUID;
 
 /**
  * @author xwl
  * @date 2019-08-17 17:12
- * @description 异步投递AsyncSends
- * 异步发送如何确认发送成功？
- * 正确的异步发送方法是需要回调的！！！
+ * @description 延时和定时投递
  */
-public class JmsProduce_AsyncSend {
+public class JmsProduce_DelayAndSchedule {
     // 192.168.92.129为安装有activemq的虚拟机的地址
     public static final String ACTIVEMQ_URL = "nio://192.168.92.129:61608";
-    public static final String QUEUE_NAME = "queue-AsyncSend";
+    public static final String QUEUE_NAME = "queue-Delay";
 
     public static void main(String[] args) throws JMSException {
         // 1、创建连接工厂
         ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory(ACTIVEMQ_URL);
-        // 开启异步投递AsyncSends，可能会有商量消息丢失
-        activeMQConnectionFactory.setUseAsyncSend(true);
         // 2、通过连接工厂，获得连接connection并启动访问
         Connection connection = activeMQConnectionFactory.createConnection();
         connection.start();
@@ -37,28 +31,28 @@ public class JmsProduce_AsyncSend {
         Queue queue = session.createQueue(QUEUE_NAME);
 
         // 5、创建消息的生产者
-        ActiveMQMessageProducer activeMQMessageProducer = (ActiveMQMessageProducer) session.createProducer(queue);
+        MessageProducer messageProducer = session.createProducer(queue);
+
+        // 延时3秒
+        long delay = 3 * 1000;
+        // 间隔时间4秒
+        long period = 4 * 1000;
+        // 重复5次
+        int repeat = 5;
+
         // 6、通过使用messageProducer生产3条消息发送到MQ的队列里面
-        TextMessage textMessage = null;
         for (int i = 1; i <= 4 ; i++) {
             // 7、创建消息
             // TextMessage
-            textMessage = session.createTextMessage("msg---" + i); // 理解为一个字符串
-            textMessage.setJMSMessageID(UUID.randomUUID().toString() + "_byXWL");
-            String msgID = textMessage.getJMSMessageID();
-//            textMessage.setStringProperty("c01", "vip");
-            // 8、通过messageProducer发送给mq，并且回调
-            activeMQMessageProducer.send(textMessage, new AsyncCallback() {
-                @Override
-                public void onSuccess() {
-                    System.out.println(msgID + "has been send ok");
-                }
+            TextMessage textMessage = session.createTextMessage("delay msg---" + i);// 理解为一个字符串
 
-                @Override
-                public void onException(JMSException e) {
-                    System.out.println(msgID + "fail to send");
-                }
-            });
+            // 设置延时属性
+            textMessage.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, delay);
+            textMessage.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_PERIOD, period);
+            textMessage.setIntProperty(ScheduledMessage.AMQ_SCHEDULED_REPEAT, repeat);
+
+            // 8、通过messageProducer发送给mq
+            messageProducer.send(textMessage);
 
             // MapMessage
             /*MapMessage mapMessage = session.createMapMessage();
@@ -66,7 +60,7 @@ public class JmsProduce_AsyncSend {
             messageProducer.send(mapMessage);*/
         }
         // 9、关闭资源
-        activeMQMessageProducer.close();
+        messageProducer.close();
         session.close();
         connection.close();
 

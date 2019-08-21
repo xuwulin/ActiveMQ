@@ -1,6 +1,7 @@
 package com.xwl.activemq.queue;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.RedeliveryPolicy;
 
 import javax.jms.*;
 import java.io.IOException;
@@ -24,7 +25,7 @@ import java.io.IOException;
  *                      msg---4
  *
  */
-public class JmsConsumer_queue {
+public class JmsConsumer_redelivery {
     // 192.168.92.129为安装有activemq的虚拟机的地址
     public static final String ACTIVEMQ_URL = "nio://192.168.92.129:61608";
     public static final String QUEUE_NAME = "nioauto"; // 需要在activemq.xml中配置auto+nio
@@ -34,6 +35,12 @@ public class JmsConsumer_queue {
 
         // 1、创建连接工厂
         ActiveMQConnectionFactory activeMQConnectionFactory = new ActiveMQConnectionFactory(ACTIVEMQ_URL);
+
+        // 设置消息重发次数（默认重发6次，共发7次）
+        RedeliveryPolicy redeliveryPolicy = new RedeliveryPolicy();
+        redeliveryPolicy.setMaximumRedeliveries(3); // 设置重发3次
+        activeMQConnectionFactory.setRedeliveryPolicy(redeliveryPolicy);
+
         // 2、通过连接工厂，获得连接connection并启动访问
         Connection connection = activeMQConnectionFactory.createConnection();
         connection.start();
